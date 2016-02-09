@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content1 %}
+<a href="{{ url_for('main') }}">
+	Home
+</a>
+{% endblock %}
+{% block content2 %}
+<div id="page-content-wrapper">
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-lg-12">
+				<h1>Register</h1>
+				{% include "flash.html" %}
+				<form  method="POST">
+				{{ form.csrf_token }}
+					<input type="text" placeholder="Username" name="username" value="{{ request.form.username }}">
+					<input type="text" placeholder="Email" name="email" value="{{ request.form.email }}">
+					<input type="password" placeholder="Password" name="password" value="{{ request.form.password }}">
+					<input type="password" placeholder="Confirm Password" name="password" value="{{ request.form.password2 }}">
+				  <br /><br />
+				  <input class="btn btn-default" type="submit" value="Register">
+				</form>
+				<a href="#menu-toggle" class="btn btn-default" id="menu-toggle">Toggle Menu</a>
+			</div>
+		</div>
+	</div>
+</div>
+{% endblock %}
