@@ -1,8 +1,10 @@
 from flask.ext.wtf import Form
-from wtforms import StringField, PasswordField
+from wtforms import StringField, PasswordField, FileField
 from wtforms.validators import DataRequired, Regexp, ValidationError, Email, Length, EqualTo
 from app import db 
 
+class UploadForm(Form):
+	uploadfile = FileField()
 
 class LoginForm(Form):
     username = StringField('Username')

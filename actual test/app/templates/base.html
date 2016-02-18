@@ -42,7 +42,15 @@
 					{% else %}
 					<a href="{{ url_for('main') }}">Dashboard</a>
 					{% endif %}
-                </li>
+				</li>
+				<li>
+					{% if session['username'] %}
+					<a href="{{ url_for('list', username = session['username']) }}">List Of Uploads</a>
+					{% else %}
+					<a href="{{ url_for('main') }}">List Of Uploads</a>
+					{% endif %}
+				</li>
+				
             </ul>
         </div>
         <!-- /#sidebar-wrapper -->

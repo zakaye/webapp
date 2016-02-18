@@ -1,9 +1,22 @@
-from app import app, db, lm
-from flask import render_template, url_for, request, redirect, flash, session
+from app import app, db, lm, ALLOWED_EXTENSIONS, UPLOAD_FOLDER
+from flask import render_template, url_for, request, redirect, flash, session, send_from_directory
 from flask.ext.login import login_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from .forms import Registerform, LoginForm
+from werkzeug import secure_filename
+from .forms import Registerform, LoginForm, UploadForm
 from .user import User
+import os
+import datetime
+
+def allowed_file(filename):
+	return "." in filename and \
+		filename.rsplit(".", 1)[1] in ALLOWED_EXTENSIONS
+		
+def wronguser(username):
+	if username == session['username']:
+		return False
+	else:
+		return True
 
 @app.route('/', methods=['GET','POST'])
 def main():
@@ -32,8 +45,8 @@ def user(username):
 		return redirect(url_for('main'))
 	elif db.users.find({'username':username}).count() == 0:
 		return redirect(url_for('register'))
-	elif session['username'] != username:
-		return "Invalid"
+	elif wronguser(username):
+		return render_template("invalid.html")
 	else:
 		curuser = db.users.find_one({"username":username})
 		return render_template("dash.html", user = curuser['username'], email = curuser['email'])
@@ -58,7 +71,7 @@ def register():
 			flash('Its working', category='success')
 			return redirect(request.args.get("next") or url_for('user', username = form.username.data))
 	else:
-		return "<h2>Invalid</h2>"
+		return render_template("invalid.html")
 		
 @app.route('/logout')
 @login_required
@@ -67,6 +80,48 @@ def logout():
 	session.pop('username', None)
 	flash("You were logged out", category='success')
 	return redirect(url_for('main'))
+	
+@app.route('/list/<username>')
+@login_required
+def list(username):
+	if wronguser(username):
+		return render_template("invalid.html")
+	else:
+		if db.uploads.find({'username':username}).count() == 0:
+			result = False
+			return render_template("list.html", result = result)
+		else:
+			result = db.uploads.find({'username':username})
+			return render_template("list.html", result = result)
+	
+@app.route('/upload/<username>', methods=['GET', 'POST'])
+@login_required
+def upload(username):
+	if wronguser(username):
+		return render_template("invalid.html")
+	else:
+		form = UploadForm()
+		if request.method == 'POST':
+			file = request.files['file']
+			if file and allowed_file(file.filename):
+				filename = secure_filename(file.filename)
+				filename = username + "_" + filename
+				file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+				db.uploads.insert({'username':username, 'filename':filename, 'date':datetime.datetime.now(), 'location':os.path.join(app.config['UPLOAD_FOLDER'], filename), 'permission':1})
+				flash('File Uploaded', category='success')
+		return render_template("upload.html", form = form)
+	
+@app.route('/download/<filename>')
+@login_required
+def download(username, filename):
+	if wronguser(username):
+		return render_template("invalid.html")
+	else:
+		correct = db.uploads.find_one({"filename":filename})
+		if correct['username'] == username & correct['permission'] == 1:
+			return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+		else:
+			return render_template("invalid.html")
 	
 @lm.user_loader
 def load_user(username):
